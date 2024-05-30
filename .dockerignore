@@ -1,0 +1,5 @@
+/compose.yaml
+/dev
+/Dockerfile
+/.dockerignore
+/.git

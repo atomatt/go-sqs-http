@@ -1,0 +1,59 @@
+services:
+  service:
+    build:
+      context: .
+      target: build
+    command:
+    - sh
+    - -c
+    - |
+      set -eux
+      exec go run -v . --log-format default
+    volumes:
+      - go-pkg:/go/pkg
+      - go-build-cache:/root/.cache/go-build
+      - .:/code:ro
+    environment:
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      AWS_REGION: "us-east-1"
+      AWS_ENDPOINT_URL: "http://localstack:4566"
+    ports:
+      - 10000:10000
+
+  localstack:
+    image: localstack/localstack
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  localstack-config:
+    image: hashicorp/terraform
+    working_dir: /work
+    entrypoint: /bin/sh
+    command:
+    - -c
+    - |
+      set -eux
+
+      cp -av /code/dev/localstack/* ./
+
+      terraform init
+      terraform apply -auto-approve -state /state/terraform.tfstate
+    volumes:
+      - localstack-config-state:/state
+      - .:/code:ro
+
+  localstack-cli:
+    image: amazon/aws-cli
+    environment:
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_ENDPOINT_URL: "http://localstack:4566"
+    profiles:
+      - script
+
+volumes:
+  go-pkg: {}
+  go-build-cache: {}
+  localstack-config-state: {}
